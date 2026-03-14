@@ -148,7 +148,6 @@
     user-select: none;
   }
   .chip:hover { border-color: var(--green); color: var(--green); }
-  .chip input { display: none; }
   .chip.on { background: var(--green-light); border-color: var(--green); color: var(--green-dark); font-weight: 600; }
 
   .hint { font-size: 11px; color: var(--gray-400); margin-top: 4px; }
@@ -267,7 +266,6 @@
     user-select: none;
     transition: all 0.1s;
   }
-  .edit-chip input { display: none; }
   .edit-chip.on { background: var(--green-light); border-color: var(--green); color: var(--green-dark); }
 
   .edit-actions { display: flex; gap: 8px; margin-top: 12px; }
@@ -379,12 +377,12 @@
         <div class="field">
           <label class="field-label">Where does it go? <span class="req">*</span></label>
           <div class="chips" id="f-platforms">
-            <label class="chip"><input type="checkbox" value="IG"> Instagram</label>
-            <label class="chip"><input type="checkbox" value="TikTok"> TikTok</label>
-            <label class="chip"><input type="checkbox" value="X"> X (Twitter)</label>
-            <label class="chip"><input type="checkbox" value="Youtube"> YouTube</label>
-            <label class="chip"><input type="checkbox" value="Podcast"> Podcast</label>
-            <label class="chip"><input type="checkbox" value="Newsletter"> Newsletter</label>
+            <span class="chip" data-value="IG">Instagram</span>
+            <span class="chip" data-value="TikTok">TikTok</span>
+            <span class="chip" data-value="X">X (Twitter)</span>
+            <span class="chip" data-value="Youtube">YouTube</span>
+            <span class="chip" data-value="Podcast">Podcast</span>
+            <span class="chip" data-value="Newsletter">Newsletter</span>
           </div>
           <p class="hint">Select all that apply</p>
         </div>
@@ -450,7 +448,7 @@ const PLAT_LABELS = {IG:'Instagram',TikTok:'TikTok',X:'X (Twitter)',Youtube:'You
 const FREQ_MAP = {Weekly:'Every week',Daily:'Every day','Bi-Weekly':'Every other week',Matchday:'Match days only',Seasonal:'Seasonally'};
 const GOAL_MAP = {Growth:'Grow audience',Engagement:'Drive engagement',Authority:'Build authority',Sponsor:'Support sponsor',Retention:'Retain fans'};
 
-// chip toggle
+// chip toggle — plain spans with data-value, no hidden inputs
 document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => c.classList.toggle('on')));
 
 async function callNotion(userMsg, sysExtra) {
@@ -557,7 +555,7 @@ function buildCard(f) {
         </div>
         <div class="edit-field full">
           <label>Platforms</label>
-          <div class="edit-chips">${PLATS.map(p=>`<label class="edit-chip${(f.platforms||[]).includes(p)?' on':''}"><input type="checkbox" value="${p}"${(f.platforms||[]).includes(p)?' checked':''}> ${PLAT_LABELS[p]||p}</label>`).join('')}</div>
+          <div class="edit-chips">${PLATS.map(p=>`<span class="edit-chip${(f.platforms||[]).includes(p)?' on':''}" data-value="${p}">${PLAT_LABELS[p]||p}</span>`).join('')}</div>
         </div>
       </div>
       <div class="edit-actions">
@@ -567,8 +565,7 @@ function buildCard(f) {
       <div class="inline-toast"></div>
     </div>`;
 
-  div.querySelectorAll('.edit-chip').forEach(c => c.addEventListener('click', () => c.classList.toggle('on')));
-  return div;
+  div.querySelectorAll('.edit-chip').forEach(c => c.addEventListener('click', () => c.classList.toggle('on')));  return div;
 }
 
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
@@ -590,7 +587,7 @@ async function saveFormat(btn) {
   const goal = card.querySelector('.e-goal').value;
   const status = card.querySelector('.e-status').value;
   const owner = card.querySelector('.e-owner').value.trim();
-  const platforms = [...card.querySelectorAll('.edit-chip.on input')].map(i => i.value);
+  const platforms = [...card.querySelectorAll('.edit-chip.on')].map(c => c.dataset.value);
   const toast = card.querySelector('.inline-toast');
   toast.className = 'inline-toast';
 
@@ -651,7 +648,7 @@ async function submitNew() {
   const goal = document.getElementById('f-goal').value;
   const status = document.getElementById('f-status').value;
   const owner = document.getElementById('f-owner').value.trim();
-  const platforms = [...document.querySelectorAll('#f-platforms .chip.on input')].map(i => i.value);
+  const platforms = [...document.querySelectorAll('#f-platforms .chip.on')].map(c => c.dataset.value);
   const toast = document.getElementById('toast');
   toast.className = 'toast';
 
@@ -679,8 +676,7 @@ async function submitNew() {
     document.getElementById('f-goal').value = '';
     document.getElementById('f-status').value = 'Active';
     document.getElementById('f-owner').value = '';
-    document.querySelectorAll('#f-platforms .chip').forEach(c => c.classList.remove('on'));
-    setTimeout(loadFormats, 1800);
+    document.querySelectorAll('#f-platforms .chip').forEach(c => c.classList.remove('on'));    setTimeout(loadFormats, 1800);
   } catch(e) {
     toast.textContent = 'Something went wrong. Please try again.';
     toast.className = 'toast err';
