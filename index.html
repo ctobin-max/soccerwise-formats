@@ -453,22 +453,15 @@ document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () =
 
 async function callNotion(userMsg, sysExtra) {
   const sys = `You are a Notion API assistant. Use the Notion MCP tool to perform the requested operation on the Recurring Formats database (ID: ${DB_ID}). ${sysExtra||''} Respond with ONLY valid JSON — no markdown fences, no explanation, just the raw JSON.`;
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
+  const r = await fetch('/api/notion', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
-      system: sys,
-      messages: [{role:'user', content: userMsg}],
-      mcp_servers: [{type:'url', url:'https://mcp.notion.com/mcp', name:'notion-mcp'}]
-    })
+    body: JSON.stringify({ system: sys, userMessage: userMsg })
   });
   const d = await r.json();
-  const text = (d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
-  const m = text.match(/(\[[\s\S]*\]|\{[\s\S]*\})/);
-  if (!m) throw new Error('No JSON in response');
-  return JSON.parse(m[1]);
+  if (!r.ok) throw new Error(d.error || 'API error');
+  if (d.result === null && d.raw) throw new Error('No JSON in response');
+  return d.result;
 }
 
 async function loadFormats() {
