@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recurring Formats Manager — Soccerwise</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green: #1a7a4a;
+    --green-light: #e8f5ee;
+    --green-mid: #2d9c60;
+    --green-dark: #0f4f2e;
+    --black: #0d0d0d;
+    --white: #fafaf8;
+    --gray-50: #f5f5f3;
+    --gray-100: #ebebea;
+    --gray-200: #d4d4d1;
+    --gray-400: #9a9a96;
+    --gray-600: #5c5c58;
+    --gray-800: #2a2a27;
+    --red: #c0392b;
+    --red-light: #fdf2f1;
+    --amber: #d97706;
+    --amber-light: #fffbeb;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+    --radius: 10px;
+    --radius-lg: 16px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+  html { font-family: var(--font); background: var(--gray-50); color: var(--black); font-size: 15px; line-height: 1.5; }
+
+  /* ── LAYOUT ── */
+  .app { min-height: 100vh; display: flex; flex-direction: column; }
+
+  header {
+    background: var(--black);
+    color: var(--white);
+    padding: 0 2rem;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; letter-spacing: -0.02em; }
+  .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green-mid); }
+  .header-sub { font-size: 12px; color: var(--gray-400); font-family: var(--mono); }
+
+  main { flex: 1; display: grid; grid-template-columns: 420px 1fr; gap: 0; max-width: 1200px; margin: 0 auto; width: 100%; padding: 2rem 1.5rem; gap: 24px; }
+
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+
+  /* ── PANELS ── */
+  .panel {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--gray-100);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .panel-head {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--gray-100);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .panel-head h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.02em; color: var(--black); margin-bottom: 2px; }
+  .panel-head p { font-size: 13px; color: var(--gray-600); }
+  .panel-body { padding: 20px 24px; flex: 1; overflow-y: auto; }
+
+  /* ── FORM ── */
+  .field { margin-bottom: 14px; }
+  .field-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray-600);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+  .field-label .req { color: var(--red); margin-left: 2px; }
+
+  input[type="text"] {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius);
+    font-family: var(--font);
+    font-size: 14px;
+    color: var(--black);
+    background: var(--white);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    outline: none;
+  }
+  input[type="text"]:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(26,122,74,0.12); }
+  input[type="text"]::placeholder { color: var(--gray-400); }
+
+  select {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius);
+    font-family: var(--font);
+    font-size: 14px;
+    color: var(--black);
+    background: var(--white);
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235c5c58' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    transition: border-color 0.15s;
+  }
+  select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(26,122,74,0.12); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 11px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    background: var(--white);
+    color: var(--gray-600);
+    transition: all 0.1s;
+    user-select: none;
+  }
+  .chip:hover { border-color: var(--green); color: var(--green); }
+  .chip input { display: none; }
+  .chip.on { background: var(--green-light); border-color: var(--green); color: var(--green-dark); font-weight: 600; }
+
+  .hint { font-size: 11px; color: var(--gray-400); margin-top: 4px; }
+
+  .divider { border: none; border-top: 1px solid var(--gray-100); margin: 18px 0; }
+
+  .section-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--gray-400);
+    margin-bottom: 14px;
+  }
+
+  /* ── SUBMIT BTN ── */
+  .btn-submit {
+    width: 100%;
+    height: 44px;
+    background: var(--green);
+    color: var(--white);
+    border: none;
+    border-radius: var(--radius);
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    letter-spacing: -0.01em;
+    margin-top: 4px;
+  }
+  .btn-submit:hover { background: var(--green-mid); }
+  .btn-submit:active { transform: scale(0.99); }
+  .btn-submit:disabled { background: var(--gray-200); color: var(--gray-400); cursor: not-allowed; transform: none; }
+
+  /* ── TOAST ── */
+  .toast {
+    display: none;
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .toast.ok { display: block; background: var(--green-light); color: var(--green-dark); border: 1px solid rgba(26,122,74,0.2); }
+  .toast.err { display: block; background: var(--red-light); color: var(--red); border: 1px solid rgba(192,57,43,0.2); }
+
+  /* ── FORMAT CARDS ── */
+  .formats-list { display: flex; flex-direction: column; gap: 8px; }
+  .fmt-card {
+    border: 1.5px solid var(--gray-100);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .fmt-card:hover { border-color: var(--gray-200); }
+  .fmt-card.open { border-color: var(--green); }
+
+  .fmt-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    gap: 12px;
+    background: var(--white);
+  }
+  .fmt-row:hover { background: var(--gray-50); }
+
+  .status-pip {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  }
+  .pip-active { background: var(--green); }
+  .pip-testing { background: var(--amber); }
+  .pip-paused { background: var(--gray-400); }
+
+  .fmt-info { flex: 1; min-width: 0; }
+  .fmt-name { font-size: 13px; font-weight: 600; color: var(--black); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fmt-sub { font-size: 11px; color: var(--gray-400); margin-top: 1px; font-family: var(--mono); }
+
+  .fmt-badges { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; max-width: 120px; }
+  .badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 100px;
+    background: var(--gray-100);
+    color: var(--gray-600);
+    white-space: nowrap;
+  }
+  .chevron { color: var(--gray-400); font-size: 10px; flex-shrink: 0; transition: transform 0.2s; }
+  .fmt-card.open .chevron { transform: rotate(180deg); }
+
+  /* ── EDIT PANEL ── */
+  .fmt-edit {
+    display: none;
+    padding: 16px;
+    background: var(--gray-50);
+    border-top: 1px solid var(--gray-100);
+  }
+  .fmt-card.open .fmt-edit { display: block; }
+
+  .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .edit-grid .full { grid-column: 1 / -1; }
+  .edit-field label { font-size: 10px; font-weight: 700; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 4px; }
+  .edit-field input, .edit-field select { height: 34px; font-size: 13px; }
+  .edit-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .edit-chip {
+    padding: 3px 9px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    background: var(--white);
+    color: var(--gray-600);
+    user-select: none;
+    transition: all 0.1s;
+  }
+  .edit-chip input { display: none; }
+  .edit-chip.on { background: var(--green-light); border-color: var(--green); color: var(--green-dark); }
+
+  .edit-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .btn-save {
+    flex: 1; height: 36px; background: var(--green); color: var(--white);
+    border: none; border-radius: var(--radius); font-family: var(--font);
+    font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+  }
+  .btn-save:hover { background: var(--green-mid); }
+  .btn-save:disabled { background: var(--gray-200); color: var(--gray-400); cursor: not-allowed; }
+  .btn-delete {
+    height: 36px; padding: 0 14px; background: var(--white); color: var(--red);
+    border: 1.5px solid rgba(192,57,43,0.25); border-radius: var(--radius);
+    font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-delete:hover { background: var(--red-light); }
+  .btn-delete:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .inline-toast { display: none; font-size: 11px; margin-top: 8px; padding: 6px 10px; border-radius: 6px; font-weight: 500; }
+  .inline-toast.ok { display: block; background: var(--green-light); color: var(--green-dark); }
+  .inline-toast.err { display: block; background: var(--red-light); color: var(--red); }
+
+  /* ── STATES ── */
+  .loading, .empty {
+    text-align: center; padding: 40px 20px;
+    color: var(--gray-400); font-size: 13px;
+  }
+  .loading::before { content: ''; display: block; width: 24px; height: 24px; border: 2px solid var(--gray-200); border-top-color: var(--green); border-radius: 50%; margin: 0 auto 12px; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .refresh-btn {
+    height: 30px; padding: 0 12px; font-size: 11px; font-weight: 600;
+    background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 8px;
+    cursor: pointer; color: var(--gray-600); font-family: var(--font);
+    transition: all 0.1s; white-space: nowrap;
+  }
+  .refresh-btn:hover { background: var(--gray-100); }
+
+  .count-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 20px; height: 20px; padding: 0 6px;
+    background: var(--green-light); color: var(--green-dark);
+    border-radius: 100px; font-size: 11px; font-weight: 700;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="logo">
+      <div class="logo-dot"></div>
+      Soccerwise
+    </div>
+    <span class="header-sub">Recurring Formats Manager</span>
+  </header>
+
+  <main>
+
+    <!-- LEFT: ADD FORM -->
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Add a recurring format</h2>
+          <p>Fill in the fields and click submit — it goes straight into the system</p>
+        </div>
+      </div>
+      <div class="panel-body">
+
+        <div class="field">
+          <label class="field-label">Format name <span class="req">*</span></label>
+          <input type="text" id="f-name" placeholder="e.g. Monday Matchday Graphic" autocomplete="off" />
+        </div>
+
+        <hr class="divider">
+        <div class="section-title">Schedule</div>
+
+        <div class="two-col">
+          <div class="field">
+            <label class="field-label">Day of week <span class="req">*</span></label>
+            <select id="f-day">
+              <option value="">— select —</option>
+              <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
+              <option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Post time <span class="req">*</span></label>
+            <input type="text" id="f-time" placeholder="9:00 AM ET" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">How often? <span class="req">*</span></label>
+          <select id="f-freq">
+            <option value="">— select —</option>
+            <option value="Weekly">Every week</option>
+            <option value="Daily">Every day</option>
+            <option value="Bi-Weekly">Every other week</option>
+            <option value="Matchday">Match days only</option>
+            <option value="Seasonal">Seasonally</option>
+          </select>
+        </div>
+
+        <hr class="divider">
+        <div class="section-title">Platform</div>
+
+        <div class="field">
+          <label class="field-label">Where does it go? <span class="req">*</span></label>
+          <div class="chips" id="f-platforms">
+            <label class="chip"><input type="checkbox" value="IG"> Instagram</label>
+            <label class="chip"><input type="checkbox" value="TikTok"> TikTok</label>
+            <label class="chip"><input type="checkbox" value="X"> X (Twitter)</label>
+            <label class="chip"><input type="checkbox" value="Youtube"> YouTube</label>
+            <label class="chip"><input type="checkbox" value="Podcast"> Podcast</label>
+            <label class="chip"><input type="checkbox" value="Newsletter"> Newsletter</label>
+          </div>
+          <p class="hint">Select all that apply</p>
+        </div>
+
+        <hr class="divider">
+        <div class="section-title">Ownership & goal</div>
+
+        <div class="field">
+          <label class="field-label">Owner <span class="req">*</span></label>
+          <input type="text" id="f-owner" placeholder="Who is responsible for this post?" />
+        </div>
+
+        <div class="two-col">
+          <div class="field">
+            <label class="field-label">Goal <span class="req">*</span></label>
+            <select id="f-goal">
+              <option value="">— select —</option>
+              <option value="Growth">Grow audience</option>
+              <option value="Engagement">Drive engagement</option>
+              <option value="Authority">Build authority</option>
+              <option value="Sponsor">Support sponsor</option>
+              <option value="Retention">Retain fans</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Status</label>
+            <select id="f-status">
+              <option value="Active">Active</option>
+              <option value="Testing">Testing</option>
+              <option value="Paused">Paused</option>
+            </select>
+            <p class="hint">Active = auto-added to calendar</p>
+          </div>
+        </div>
+
+        <button class="btn-submit" id="submitBtn" onclick="submitNew()">Submit format</button>
+        <div class="toast" id="toast"></div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: EXISTING FORMATS -->
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Existing formats <span class="count-badge" id="count">—</span></h2>
+          <p>Click any row to view, edit, or delete</p>
+        </div>
+        <button class="refresh-btn" onclick="loadFormats()">↻ Refresh</button>
+      </div>
+      <div class="panel-body" id="formats-container">
+        <div class="loading"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const DB_ID = '3171bd3d-e5f3-8068-8ca7-000b26222438';
+const PLATS = ['IG','TikTok','X','Youtube','Podcast','Newsletter'];
+const PLAT_LABELS = {IG:'Instagram',TikTok:'TikTok',X:'X (Twitter)',Youtube:'YouTube',Podcast:'Podcast',Newsletter:'Newsletter'};
+const FREQ_MAP = {Weekly:'Every week',Daily:'Every day','Bi-Weekly':'Every other week',Matchday:'Match days only',Seasonal:'Seasonally'};
+const GOAL_MAP = {Growth:'Grow audience',Engagement:'Drive engagement',Authority:'Build authority',Sponsor:'Support sponsor',Retention:'Retain fans'};
+
+// chip toggle
+document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => c.classList.toggle('on')));
+
+async function callNotion(userMsg, sysExtra) {
+  const sys = `You are a Notion API assistant. Use the Notion MCP tool to perform the requested operation on the Recurring Formats database (ID: ${DB_ID}). ${sysExtra||''} Respond with ONLY valid JSON — no markdown fences, no explanation, just the raw JSON.`;
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2000,
+      system: sys,
+      messages: [{role:'user', content: userMsg}],
+      mcp_servers: [{type:'url', url:'https://mcp.notion.com/mcp', name:'notion-mcp'}]
+    })
+  });
+  const d = await r.json();
+  const text = (d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+  const m = text.match(/(\[[\s\S]*\]|\{[\s\S]*\})/);
+  if (!m) throw new Error('No JSON in response');
+  return JSON.parse(m[1]);
+}
+
+async function loadFormats() {
+  const c = document.getElementById('formats-container');
+  c.innerHTML = '<div class="loading"></div>';
+  document.getElementById('count').textContent = '—';
+  try {
+    const data = await callNotion(
+      `Query ALL pages from the Recurring Formats Notion database (ID: ${DB_ID}). Return every page as a JSON array. For each page include: id (page ID), name (Format Name title property), status (Status select), day (Day of Week select), time (Post Time text), frequency (Frequency select), platforms (Platform multi-select as array of strings), goal (Goal select), owner_text (Owner people field as comma-separated display names or empty string). Exclude any page whose name contains "TEMPLATE" or is in trash. Return format: [{"id":"...","name":"...","status":"...","day":"...","time":"...","frequency":"...","platforms":["..."],"goal":"...","owner_text":"..."}]`,
+      'Return a JSON array only. No markdown.'
+    );
+    const formats = (Array.isArray(data) ? data : []).filter(f => f.name && !f.name.includes('TEMPLATE'));
+    document.getElementById('count').textContent = formats.length;
+    if (!formats.length) {
+      c.innerHTML = '<div class="empty">No formats yet.<br>Add one using the form on the left.</div>';
+      return;
+    }
+    c.innerHTML = '';
+    const list = document.createElement('div');
+    list.className = 'formats-list';
+    formats.forEach(f => list.appendChild(buildCard(f)));
+    c.appendChild(list);
+  } catch(e) {
+    c.innerHTML = '<div class="empty">Could not load formats.<br>Click ↻ Refresh to try again.</div>';
+  }
+}
+
+function pipClass(s) {
+  if (!s) return 'pip-paused';
+  const l = s.toLowerCase();
+  if (l === 'active') return 'pip-active';
+  if (l === 'testing') return 'pip-testing';
+  return 'pip-paused';
+}
+
+function buildCard(f) {
+  const div = document.createElement('div');
+  div.className = 'fmt-card';
+  div.dataset.id = f.id;
+
+  const platBadges = (f.platforms||[]).slice(0,3).map(p => `<span class="badge">${p}</span>`).join('');
+  const extra = (f.platforms||[]).length > 3 ? `<span class="badge">+${f.platforms.length - 3}</span>` : '';
+  const freqLabel = FREQ_MAP[f.frequency] || f.frequency || '—';
+
+  div.innerHTML = `
+    <div class="fmt-row" onclick="toggleCard(this)">
+      <div class="status-pip ${pipClass(f.status)}"></div>
+      <div class="fmt-info">
+        <div class="fmt-name">${esc(f.name||'Untitled')}</div>
+        <div class="fmt-sub">${f.day||'?'} · ${f.time||'—'} · ${freqLabel}</div>
+      </div>
+      <div class="fmt-badges">${platBadges}${extra}</div>
+      <div class="chevron">▼</div>
+    </div>
+    <div class="fmt-edit">
+      <div class="edit-grid">
+        <div class="edit-field full">
+          <label>Format name</label>
+          <input type="text" class="e-name" value="${esc(f.name||'')}" />
+        </div>
+        <div class="edit-field">
+          <label>Day of week</label>
+          <select class="e-day">${['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d=>`<option${f.day===d?' selected':''}>${d}</option>`).join('')}</select>
+        </div>
+        <div class="edit-field">
+          <label>Post time</label>
+          <input type="text" class="e-time" value="${esc(f.time||'')}" placeholder="9:00 AM ET" />
+        </div>
+        <div class="edit-field">
+          <label>Frequency</label>
+          <select class="e-freq">${Object.entries(FREQ_MAP).map(([v,l])=>`<option value="${v}"${f.frequency===v?' selected':''}>${l}</option>`).join('')}</select>
+        </div>
+        <div class="edit-field">
+          <label>Goal</label>
+          <select class="e-goal"><option value="">—</option>${Object.entries(GOAL_MAP).map(([v,l])=>`<option value="${v}"${f.goal===v?' selected':''}>${l}</option>`).join('')}</select>
+        </div>
+        <div class="edit-field">
+          <label>Status</label>
+          <select class="e-status">${['Active','Testing','Paused'].map(s=>`<option${f.status===s?' selected':''}>${s}</option>`).join('')}</select>
+        </div>
+        <div class="edit-field">
+          <label>Owner</label>
+          <input type="text" class="e-owner" value="${esc(f.owner_text||'')}" placeholder="Name" />
+        </div>
+        <div class="edit-field full">
+          <label>Platforms</label>
+          <div class="edit-chips">${PLATS.map(p=>`<label class="edit-chip${(f.platforms||[]).includes(p)?' on':''}"><input type="checkbox" value="${p}"${(f.platforms||[]).includes(p)?' checked':''}> ${PLAT_LABELS[p]||p}</label>`).join('')}</div>
+        </div>
+      </div>
+      <div class="edit-actions">
+        <button class="btn-save" onclick="saveFormat(this)">Save changes</button>
+        <button class="btn-delete" onclick="deleteFormat(this)">Delete</button>
+      </div>
+      <div class="inline-toast"></div>
+    </div>`;
+
+  div.querySelectorAll('.edit-chip').forEach(c => c.addEventListener('click', () => c.classList.toggle('on')));
+  return div;
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function toggleCard(row) {
+  const card = row.closest('.fmt-card');
+  const isOpen = card.classList.contains('open');
+  document.querySelectorAll('.fmt-card.open').forEach(c => c.classList.remove('open'));
+  if (!isOpen) card.classList.add('open');
+}
+
+async function saveFormat(btn) {
+  const card = btn.closest('.fmt-card');
+  const id = card.dataset.id;
+  const name = card.querySelector('.e-name').value.trim();
+  const day = card.querySelector('.e-day').value;
+  const time = card.querySelector('.e-time').value.trim();
+  const freq = card.querySelector('.e-freq').value;
+  const goal = card.querySelector('.e-goal').value;
+  const status = card.querySelector('.e-status').value;
+  const owner = card.querySelector('.e-owner').value.trim();
+  const platforms = [...card.querySelectorAll('.edit-chip.on input')].map(i => i.value);
+  const toast = card.querySelector('.inline-toast');
+  toast.className = 'inline-toast';
+
+  if (!name) { toast.textContent = 'Format name is required.'; toast.className = 'inline-toast err'; return; }
+
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await callNotion(
+      `Update the Notion page with ID "${id}". Set these properties: Format Name title = "${name}", Day of Week = "${day}", Post Time = "${time}", Frequency = "${freq}", Goal = "${goal}", Status = "${status}", Platform multi-select = [${platforms.map(p=>`"${p}"`).join(',')}]. Owner note (text only, cannot set People via API here): "${owner}". Respond with {"success":true}.`,
+      'Update the page properties exactly as specified.'
+    );
+    toast.textContent = 'Saved successfully!';
+    toast.className = 'inline-toast ok';
+    card.querySelector('.fmt-name').textContent = name;
+    card.querySelector('.fmt-sub').textContent = `${day} · ${time} · ${FREQ_MAP[freq]||freq}`;
+    card.querySelector('.status-pip').className = `status-pip ${pipClass(status)}`;
+  } catch(e) {
+    toast.textContent = 'Save failed — please try again.';
+    toast.className = 'inline-toast err';
+  }
+  btn.disabled = false; btn.textContent = 'Save changes';
+}
+
+async function deleteFormat(btn) {
+  if (!confirm('Are you sure you want to delete this format? This cannot be undone.')) return;
+  const card = btn.closest('.fmt-card');
+  const id = card.dataset.id;
+  const toast = card.querySelector('.inline-toast');
+  btn.disabled = true; btn.textContent = 'Deleting…';
+  try {
+    await callNotion(
+      `Archive (trash) the Notion page with ID "${id}" by setting it to in_trash / archived. Respond with {"success":true}.`,
+      'Archive the specified page.'
+    );
+    card.style.opacity = '0';
+    card.style.transform = 'translateX(-8px)';
+    card.style.transition = 'opacity 0.3s, transform 0.3s';
+    setTimeout(() => {
+      card.remove();
+      const remaining = document.querySelectorAll('.fmt-card').length;
+      document.getElementById('count').textContent = remaining;
+      if (!remaining) {
+        document.getElementById('formats-container').innerHTML = '<div class="empty">No formats yet.<br>Add one using the form on the left.</div>';
+      }
+    }, 300);
+  } catch(e) {
+    toast.textContent = 'Delete failed — please try again.';
+    toast.className = 'inline-toast err';
+    btn.disabled = false; btn.textContent = 'Delete';
+  }
+}
+
+async function submitNew() {
+  const name = document.getElementById('f-name').value.trim();
+  const day = document.getElementById('f-day').value;
+  const time = document.getElementById('f-time').value.trim();
+  const freq = document.getElementById('f-freq').value;
+  const goal = document.getElementById('f-goal').value;
+  const status = document.getElementById('f-status').value;
+  const owner = document.getElementById('f-owner').value.trim();
+  const platforms = [...document.querySelectorAll('#f-platforms .chip.on input')].map(i => i.value);
+  const toast = document.getElementById('toast');
+  toast.className = 'toast';
+
+  if (!name || !day || !time || !freq || !goal || !owner || !platforms.length) {
+    toast.textContent = 'Please fill in all required fields and select at least one platform.';
+    toast.className = 'toast err';
+    return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+
+  try {
+    await callNotion(
+      `Create a new page in the Recurring Formats database (ID: ${DB_ID}) with these property values: Format Name title = "${name}", Day of Week select = "${day}", Post Time text = "${time}", Frequency select = "${freq}", Goal select = "${goal}", Status select = "${status}", Platform multi-select = [${platforms.map(p=>`"${p}"`).join(',')}]. Owner note: "${owner}". Respond with {"success":true,"id":"<new_page_id>"}.`,
+      'Create the page in Notion with all specified properties.'
+    );
+    toast.textContent = '✓ Format added! It will appear in the list — click Refresh to see it.';
+    toast.className = 'toast ok';
+    // Reset form
+    document.getElementById('f-name').value = '';
+    document.getElementById('f-day').value = '';
+    document.getElementById('f-time').value = '';
+    document.getElementById('f-freq').value = '';
+    document.getElementById('f-goal').value = '';
+    document.getElementById('f-status').value = 'Active';
+    document.getElementById('f-owner').value = '';
+    document.querySelectorAll('#f-platforms .chip').forEach(c => c.classList.remove('on'));
+    setTimeout(loadFormats, 1800);
+  } catch(e) {
+    toast.textContent = 'Something went wrong. Please try again.';
+    toast.className = 'toast err';
+  }
+  btn.disabled = false; btn.textContent = 'Submit format';
+}
+
+loadFormats();
+</script>
+</body>
+</html>
