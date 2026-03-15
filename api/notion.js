@@ -6,12 +6,8 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const NOTION_TOKEN = process.env.NOTION_TOKEN;
+  const NOTION_TOKEN = process.env.NOTION_TOKEN || 'secret_ntn_G74699176835ZT1zcg9YuAepDAnMA0SSDuZjTtX1Wo93CH';
   const DB_ID = '3171bd3de5f380eca9ddf62c894e12e8';
-
-  if (!NOTION_TOKEN) {
-    return res.status(500).json({ error: 'NOTION_TOKEN environment variable not set' });
-  }
 
   const headers = {
     'Authorization': `Bearer ${NOTION_TOKEN}`,
