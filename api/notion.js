@@ -6,39 +6,118 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  const NOTION_TOKEN = process.env.NOTION_TOKEN;
+  const DB_ID = '3171bd3de5f380eca9ddf62c894e12e8';
+
+  if (!NOTION_TOKEN) {
+    return res.status(500).json({ error: 'NOTION_TOKEN environment variable not set' });
+  }
+
+  const headers = {
+    'Authorization': `Bearer ${NOTION_TOKEN}`,
+    'Content-Type': 'application/json',
+    'Notion-Version': '2022-06-28',
+  };
+
+  const { action, payload } = req.body;
+
   try {
-    const { system, userMessage } = req.body;
+    // ── LIST all formats ──────────────────────────────────────────────
+    if (action === 'list') {
+      const r = await fetch(`https://api.notion.com/v1/databases/${DB_ID}/query`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ page_size: 100 }),
+      });
+      const data = await r.json();
+      if (!r.ok) return res.status(r.status).json({ error: data });
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
-        system,
-        messages: [{ role: 'user', content: userMessage }],
-        mcp_servers: [{ type: 'url', url: 'https://mcp.notion.com/mcp', name: 'notion-mcp' }],
-      }),
-    });
+      const formats = (data.results || [])
+        .filter(p => !p.archived && !p.in_trash)
+        .map(p => ({
+          id: p.id,
+          name: p.properties['Format Name']?.title?.[0]?.plain_text || '',
+          status: p.properties['Status']?.select?.name || '',
+          day: p.properties['Day of Week']?.select?.name || '',
+          time: p.properties['Post Time']?.rich_text?.[0]?.plain_text || '',
+          frequency: p.properties['Frequency']?.select?.name || '',
+          platforms: p.properties['Platform']?.multi_select?.map(s => s.name) || [],
+          goal: p.properties['Goal']?.select?.name || '',
+        }))
+        .filter(f => f.name && !f.name.includes('TEMPLATE'));
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      return res.status(response.status).json({ error: data });
+      return res.status(200).json({ formats });
     }
 
-    const text = (data.content || [])
-      .filter((b) => b.type === 'text')
-      .map((b) => b.text)
-      .join('');
+    // ── CREATE a new format ───────────────────────────────────────────
+    if (action === 'create') {
+      const { name, day, time, frequency, platforms, goal, status } = payload;
 
-    const match = text.match(/(\[[\s\S]*\]|\{[\s\S]*\})/);
-    const parsed = match ? JSON.parse(match[1]) : null;
+      const body = {
+        parent: { database_id: DB_ID },
+        properties: {
+          'Format Name': { title: [{ text: { content: name } }] },
+          'Status': { select: { name: status || 'Active' } },
+          'Day of Week': { select: { name: day } },
+          'Post Time': { rich_text: [{ text: { content: time } }] },
+          'Frequency': { select: { name: frequency } },
+          'Platform': { multi_select: platforms.map(p => ({ name: p })) },
+          'Goal': { select: { name: goal } },
+        },
+      };
 
-    return res.status(200).json({ result: parsed, raw: text });
+      const r = await fetch('https://api.notion.com/v1/pages', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+      });
+      const data = await r.json();
+      if (!r.ok) return res.status(r.status).json({ error: data });
+      return res.status(200).json({ success: true, id: data.id });
+    }
+
+    // ── UPDATE an existing format ─────────────────────────────────────
+    if (action === 'update') {
+      const { id, name, day, time, frequency, platforms, goal, status } = payload;
+
+      const body = {
+        properties: {
+          'Format Name': { title: [{ text: { content: name } }] },
+          'Status': { select: { name: status } },
+          'Day of Week': { select: { name: day } },
+          'Post Time': { rich_text: [{ text: { content: time } }] },
+          'Frequency': { select: { name: frequency } },
+          'Platform': { multi_select: platforms.map(p => ({ name: p })) },
+          'Goal': { select: { name: goal } },
+        },
+      };
+
+      const r = await fetch(`https://api.notion.com/v1/pages/${id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(body),
+      });
+      const data = await r.json();
+      if (!r.ok) return res.status(r.status).json({ error: data });
+      return res.status(200).json({ success: true });
+    }
+
+    // ── DELETE (archive) a format ─────────────────────────────────────
+    if (action === 'delete') {
+      const { id } = payload;
+
+      const r = await fetch(`https://api.notion.com/v1/pages/${id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ archived: true }),
+      });
+      const data = await r.json();
+      if (!r.ok) return res.status(r.status).json({ error: data });
+      return res.status(200).json({ success: true });
+    }
+
+    return res.status(400).json({ error: `Unknown action: ${action}` });
+
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: err.message });
