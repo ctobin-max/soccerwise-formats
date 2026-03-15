@@ -442,7 +442,6 @@
 </div>
 
 <script>
-const DB_ID = '3171bd3d-e5f3-8068-8ca7-000b26222438';
 const PLATS = ['IG','TikTok','X','Youtube','Podcast','Newsletter'];
 const PLAT_LABELS = {IG:'Instagram',TikTok:'TikTok',X:'X (Twitter)',Youtube:'YouTube',Podcast:'Podcast',Newsletter:'Newsletter'};
 const FREQ_MAP = {Weekly:'Every week',Daily:'Every day','Bi-Weekly':'Every other week',Matchday:'Match days only',Seasonal:'Seasonally'};
@@ -451,17 +450,15 @@ const GOAL_MAP = {Growth:'Grow audience',Engagement:'Drive engagement',Authority
 // chip toggle — plain spans with data-value, no hidden inputs
 document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => c.classList.toggle('on')));
 
-async function callNotion(userMsg, sysExtra) {
-  const sys = `You are a Notion API assistant. Use the Notion MCP tool to perform the requested operation on the Recurring Formats database (ID: ${DB_ID}). ${sysExtra||''} Respond with ONLY valid JSON — no markdown fences, no explanation, just the raw JSON.`;
+async function api(action, payload) {
   const r = await fetch('/api/notion', {
     method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ system: sys, userMessage: userMsg })
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, payload }),
   });
   const d = await r.json();
-  if (!r.ok) throw new Error(d.error || 'API error');
-  if (d.result === null && d.raw) throw new Error('No JSON in response');
-  return d.result;
+  if (!r.ok) throw new Error(JSON.stringify(d.error || d));
+  return d;
 }
 
 async function loadFormats() {
@@ -469,11 +466,7 @@ async function loadFormats() {
   c.innerHTML = '<div class="loading"></div>';
   document.getElementById('count').textContent = '—';
   try {
-    const data = await callNotion(
-      `Query ALL pages from the Recurring Formats Notion database (ID: ${DB_ID}). Return every page as a JSON array. For each page include: id (page ID), name (Format Name title property), status (Status select), day (Day of Week select), time (Post Time text), frequency (Frequency select), platforms (Platform multi-select as array of strings), goal (Goal select), owner_text (Owner people field as comma-separated display names or empty string). Exclude any page whose name contains "TEMPLATE" or is in trash. Return format: [{"id":"...","name":"...","status":"...","day":"...","time":"...","frequency":"...","platforms":["..."],"goal":"...","owner_text":"..."}]`,
-      'Return a JSON array only. No markdown.'
-    );
-    const formats = (Array.isArray(data) ? data : []).filter(f => f.name && !f.name.includes('TEMPLATE'));
+    const { formats } = await api('list');
     document.getElementById('count').textContent = formats.length;
     if (!formats.length) {
       c.innerHTML = '<div class="empty">No formats yet.<br>Add one using the form on the left.</div>';
@@ -485,7 +478,7 @@ async function loadFormats() {
     formats.forEach(f => list.appendChild(buildCard(f)));
     c.appendChild(list);
   } catch(e) {
-    c.innerHTML = '<div class="empty">Could not load formats.<br>Click ↻ Refresh to try again.</div>';
+    c.innerHTML = `<div class="empty">Could not load formats.<br>Click ↻ Refresh to try again.</div>`;
   }
 }
 
@@ -579,7 +572,6 @@ async function saveFormat(btn) {
   const freq = card.querySelector('.e-freq').value;
   const goal = card.querySelector('.e-goal').value;
   const status = card.querySelector('.e-status').value;
-  const owner = card.querySelector('.e-owner').value.trim();
   const platforms = [...card.querySelectorAll('.edit-chip.on')].map(c => c.dataset.value);
   const toast = card.querySelector('.inline-toast');
   toast.className = 'inline-toast';
@@ -588,10 +580,7 @@ async function saveFormat(btn) {
 
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
-    await callNotion(
-      `Update the Notion page with ID "${id}". Set these properties: Format Name title = "${name}", Day of Week = "${day}", Post Time = "${time}", Frequency = "${freq}", Goal = "${goal}", Status = "${status}", Platform multi-select = [${platforms.map(p=>`"${p}"`).join(',')}]. Owner note (text only, cannot set People via API here): "${owner}". Respond with {"success":true}.`,
-      'Update the page properties exactly as specified.'
-    );
+    await api('update', { id, name, day, time, frequency: freq, platforms, goal, status });
     toast.textContent = 'Saved successfully!';
     toast.className = 'inline-toast ok';
     card.querySelector('.fmt-name').textContent = name;
@@ -611,10 +600,7 @@ async function deleteFormat(btn) {
   const toast = card.querySelector('.inline-toast');
   btn.disabled = true; btn.textContent = 'Deleting…';
   try {
-    await callNotion(
-      `Archive (trash) the Notion page with ID "${id}" by setting it to in_trash / archived. Respond with {"success":true}.`,
-      'Archive the specified page.'
-    );
+    await api('delete', { id });
     card.style.opacity = '0';
     card.style.transform = 'translateX(-8px)';
     card.style.transition = 'opacity 0.3s, transform 0.3s';
@@ -640,12 +626,11 @@ async function submitNew() {
   const freq = document.getElementById('f-freq').value;
   const goal = document.getElementById('f-goal').value;
   const status = document.getElementById('f-status').value;
-  const owner = document.getElementById('f-owner').value.trim();
   const platforms = [...document.querySelectorAll('#f-platforms .chip.on')].map(c => c.dataset.value);
   const toast = document.getElementById('toast');
   toast.className = 'toast';
 
-  if (!name || !day || !time || !freq || !goal || !owner || !platforms.length) {
+  if (!name || !day || !time || !freq || !goal || !platforms.length) {
     toast.textContent = 'Please fill in all required fields and select at least one platform.';
     toast.className = 'toast err';
     return;
@@ -655,21 +640,17 @@ async function submitNew() {
   btn.disabled = true; btn.textContent = 'Submitting…';
 
   try {
-    await callNotion(
-      `Create a new page in the Recurring Formats database (ID: ${DB_ID}) with these property values: Format Name title = "${name}", Day of Week select = "${day}", Post Time text = "${time}", Frequency select = "${freq}", Goal select = "${goal}", Status select = "${status}", Platform multi-select = [${platforms.map(p=>`"${p}"`).join(',')}]. Owner note: "${owner}". Respond with {"success":true,"id":"<new_page_id>"}.`,
-      'Create the page in Notion with all specified properties.'
-    );
+    await api('create', { name, day, time, frequency: freq, platforms, goal, status });
     toast.textContent = '✓ Format added! It will appear in the list — click Refresh to see it.';
     toast.className = 'toast ok';
-    // Reset form
     document.getElementById('f-name').value = '';
     document.getElementById('f-day').value = '';
     document.getElementById('f-time').value = '';
     document.getElementById('f-freq').value = '';
     document.getElementById('f-goal').value = '';
     document.getElementById('f-status').value = 'Active';
-    document.getElementById('f-owner').value = '';
-    document.querySelectorAll('#f-platforms .chip').forEach(c => c.classList.remove('on'));    setTimeout(loadFormats, 1800);
+    document.querySelectorAll('#f-platforms .chip').forEach(c => c.classList.remove('on'));
+    setTimeout(loadFormats, 1500);
   } catch(e) {
     toast.textContent = 'Something went wrong. Please try again.';
     toast.className = 'toast err';
