@@ -464,7 +464,7 @@ async function api(action, payload) {
       method: 'POST', headers: NOTION_HEADERS, body: JSON.stringify({ page_size: 100 }),
     });
     const d = await r.json();
-    if (!r.ok) throw new Error(d.message || JSON.stringify(d));
+    if (!r.ok) throw new Error(`Notion error ${r.status}: ${d.message || d.code || JSON.stringify(d)}`);
     const formats = (d.results || [])
       .filter(p => !p.archived && !p.in_trash)
       .map(p => ({
@@ -555,7 +555,7 @@ async function loadFormats() {
     formats.forEach(f => list.appendChild(buildCard(f)));
     c.appendChild(list);
   } catch(e) {
-    c.innerHTML = `<div class="empty">Could not load formats.<br>Click ↻ Refresh to try again.</div>`;
+    c.innerHTML = `<div class="empty">Error: ${e.message}<br><br>Click ↻ Refresh to try again.</div>`;
   }
 }
 
@@ -729,7 +729,7 @@ async function submitNew() {
     document.querySelectorAll('#f-platforms .chip').forEach(c => c.classList.remove('on'));
     setTimeout(loadFormats, 1500);
   } catch(e) {
-    toast.textContent = 'Something went wrong. Please try again.';
+    toast.textContent = `Error: ${e.message}`;
     toast.className = 'toast err';
   }
   btn.disabled = false; btn.textContent = 'Submit format';
